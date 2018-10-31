@@ -45,8 +45,8 @@ public:
     GZ_ASSERT(this->sdf != NULL, "Got NULL SDF element pointer!");
     
     // Check if Config Elements exist, otherwise they will have default value
-    if (_sdf->HasElement("number_of_particles"))
-      this->number_of_particles = _sdf->Get<double>("number_of_particles");
+    if (_sdf->HasElement("reset_frequency"))
+      this->reset_frequency = _sdf->Get<double>("reset_frequency");
 
     if (_sdf->HasElement("x_axis_force"))
       this->x_axis_force = _sdf->Get<double>("x_axis_force");
@@ -78,6 +78,8 @@ public:
     this->updateConnection = event::Events::ConnectWorldUpdateBegin(
         std::bind(&ParticleShooterPlugin::OnUpdate, this));
 
+    GetParticleList();
+    OutputParticleList();
 
     ROS_DEBUG("Particle Shooter Ready....");
   }
@@ -123,9 +125,9 @@ public:
 
         double max_delta = 0.0;
 
-        if (this->update_frequency != 0.0)
+        if (this->reset_frequency != 0.0)
         {
-          max_delta = 1.0 / this->update_frequency;
+          max_delta = 1.0 / this->reset_frequency;
         }
 
         if (delta > max_delta && delta != 0.0)
@@ -133,8 +135,17 @@ public:
           // We update the Old Time variable.
           this->old_secs = new_secs;
           
-          // Update the Particles
-          UpdateParticles();
+          
+          if (this->model_to_update_index_now >= this->modelIDToName_size)
+          {
+            this->model_to_update_index_now = 0;
+          }
+          
+            // Update the Particles
+            UpdateParticles(this->model_to_update_index_now);
+            this->model_to_update_index_now ++;
+          
+
         }
     }
 
@@ -146,64 +157,116 @@ public:
   {
     unsigned int microseconds;
     microseconds = seconds_to_wait * 1e6;
-    ROS_DEBUG("Waiting for %f seconds",seconds_to_wait);
+    ROS_WARN("Waiting for %f seconds",seconds_to_wait);
     usleep(microseconds);
-    ROS_DEBUG("Done waiting...");
+    ROS_WARN("Done waiting...");
 
   }
 
-  void UpdateParticles()
+  void UpdateParticles(int model_to_update_index)
   {
-    //this->SetForceParticles();
-    this->MoveParticles();
-  }
-  
-  void MoveParticles()
-  {
-      
-    std::string particle_base_name = "particle";
-
     for (auto model : this->world->Models())
     {
         std::string model_name = model->GetName();
-
-        float x_pos_rand = 0.0;
-        float y_pos_rand = 0.0;
-        float z_pos_rand = 0.0;
-        float roll_rand = 0.0;
-        float pitch_rand = 0.0;
-        float yaw_rand = 0.0;
-
-        // Id the model name contains the substring particle, we consider it a particle
-        if (model_name.find(particle_base_name) == std::string::npos)
+        if (this->modelIDToName[model_to_update_index] == model_name)
         {
-            ROS_DEBUG("Moving model=%s",model_name.c_str());
-
-            float x_pos_rand = RandomFloat(this->x_origin - this->random_range, this->x_origin + this->random_range);
-            float y_pos_rand = RandomFloat(this->y_origin - this->random_range, this->y_origin + this->random_range);
-            float z_pos_rand = RandomFloat(this->z_origin - this->random_range, this->z_origin + this->random_range);
-            
-            /***
-            float roll_rand = RandomFloat(this->roll_min, this->roll_max);
-            float pitch_rand = RandomFloat(this->pitch_min, this->pitch_max);
-            float yaw_rand = RandomFloat(this->yaw_min, this->yaw_max);
-            ***/
-            
-            ROS_DEBUG("POSE-RANDOM[X,Y,Z,Roll,Pitch,Yaw=[%f,%f,%f,%f,%f,%f], model=%s", x_pos_rand,y_pos_rand,z_pos_rand,roll_rand,pitch_rand,yaw_rand,model_name.c_str());
-            //ignition::math::Pose3 initPose(ignition::math::Vector3<float>(x_pos_rand, y_pos_rand, z_pos_rand), ignition::math::Quaternion<float>(roll_rand, pitch_rand, yaw_rand));
-            
-            model->SetWorldPose(
-                                ignition::math::Pose3d(
-                                    ignition::math::Vector3d(x_pos_rand, y_pos_rand, z_pos_rand),
-                                    ignition::math::Quaterniond(roll_rand, pitch_rand, yaw_rand)
-                                                    )
-                                );
-            
-            ROS_DEBUG("Moving model=%s....END",model_name.c_str());
-
+            this->MoveParticle(model);
+            this->SetForceParticle(model);
         }
+        
+    }
+  }
+  
+  
+  
+    void GetParticleList()
+    {
+        this->modelIDToName.clear();
+        // Initialize color map.
+        this->modelIDToName_size = 0;
+        
+        int i = 0;
+        for (auto model : this->world->Models())
+        {
+            std::string model_name = model->GetName();
+            if (model_name.find(this->particle_base_name) != std::string::npos)
+            {
+                this->modelIDToName[i] = model->GetName();
+                i ++;
+            }
+          
+        }
+        
+        this->modelIDToName_size = modelIDToName.size();
+    }
+    
+    void OutputParticleList()
+  {
+    ROS_WARN("Start OutputParticleList...");
+
+    for (auto const& x : this->modelIDToName)
+    {
+        ROS_WARN("ModelID=%i, Name=%s", x.first, x.second.c_str());
+    }
+
+    ROS_WARN("END OutputParticleList...");
+
+  }
+  
+  
+  void MoveParticle(boost::shared_ptr<gazebo::physics::Model> model)
+  {
+
+    std::string model_name = model->GetName();
+
+    float x_pos_rand = 0.0;
+    float y_pos_rand = 0.0;
+    float z_pos_rand = 0.0;
+    float roll_rand = 0.0;
+    float pitch_rand = 0.0;
+    float yaw_rand = 0.0;
+
+    // If the model name contains the substring particle, we consider it a particle
+    if (model_name.find(this->particle_base_name) != std::string::npos)
+    {
+        ROS_WARN("Moving model=%s",model_name.c_str());
+
+        float x_pos_rand = RandomFloat(this->x_origin - this->random_range, this->x_origin + this->random_range);
+        float y_pos_rand = RandomFloat(this->y_origin - this->random_range, this->y_origin + this->random_range);
+        float z_pos_rand = RandomFloat(this->z_origin - this->random_range, this->z_origin + this->random_range);
+        
+        ROS_DEBUG("POSE-RANDOM[X,Y,Z,Roll,Pitch,Yaw=[%f,%f,%f,%f,%f,%f], model=%s", x_pos_rand,y_pos_rand,z_pos_rand,roll_rand,pitch_rand,yaw_rand,model_name.c_str());
+        //ignition::math::Pose3 initPose(ignition::math::Vector3<float>(x_pos_rand, y_pos_rand, z_pos_rand), ignition::math::Quaternion<float>(roll_rand, pitch_rand, yaw_rand));
+        
+        model->SetWorldPose(
+                            ignition::math::Pose3d(
+                                ignition::math::Vector3d(x_pos_rand, y_pos_rand, z_pos_rand),
+                                ignition::math::Quaterniond(roll_rand, pitch_rand, yaw_rand)
+                                                )
+                            );
+        
+        ROS_DEBUG("Moving model=%s....END",model_name.c_str());
 
     }
+
+    
+
+  }
+  
+  
+  void SetForceParticle(boost::shared_ptr<gazebo::physics::Model> model)
+  {
+      
+    std::string model_name = model->GetName();
+
+    // If the model name contains the substring particle, we consider it a particle
+    if (model_name.find(this->particle_base_name) != std::string::npos)
+    {
+        ROS_WARN("FORCE APPLIED[X,Y,Z]=[%f,%f,%f]", this->x_axis_force, this->y_axis_force, this->z_axis_force);
+        model->GetLink("link")->SetForce(ignition::math::Vector3d(this->x_axis_force, this->y_axis_force, this->z_axis_force));
+    }
+
+    
 
   }
 
@@ -224,24 +287,18 @@ public:
   protected: gazebo::physics::WorldPtr world;
   /// \brief SDF pointer.
   protected: sdf::ElementPtr sdf;
-  /// \brief Maps model IDs to colors
-  private: std::map<int, gazebo::common::Color> lastKnownColors;
   /// \brief Maps model IDs to ModelNames
   private: std::map<int, std::string> modelIDToName;
   
-  /// \brief Maps light IDs to LightNames
-  private: std::map<int, std::string> lightIDToName;
   
-  // Update Loop frequency
-  double update_frequency = 2.0;
+  // Update Loop frequency, rate at which we restart the positions and apply force to particles
+  double reset_frequency = 2.0;
   // Time Memory
   double old_secs;
-  // Number of particles
-  int number_of_particles = 10;
   // Force Direction
   double x_axis_force = 0.0;
   double y_axis_force = 0.0;
-  double z_axis_force = -1.0;
+  double z_axis_force = 0.0;
   double x_origin = 0.0;
   double y_origin = 0.0;
   double z_origin = 1.0;
@@ -251,6 +308,10 @@ public:
   // Reseting Flag
   bool reseting_plugin = false;
   
+  int modelIDToName_size = 0;
+  int model_to_update_index_now = 0;
+  
+  std::string particle_base_name = "particle";
 
 };
 GZ_REGISTER_WORLD_PLUGIN(ParticleShooterPlugin)
