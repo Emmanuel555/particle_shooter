@@ -6,9 +6,21 @@
     </include>
 
     <include>
-      <uri>model://demo_table</uri>
-      <name>demo_table1</name>
-      <pose>0.3 0.3 0.3 0 0 0</pose>
+      <uri>model://particle_sphere</uri>
+      <name>particle_sphere1</name>
+      <pose>1 0 0 0 0 0</pose>
+    </include>
+    
+    <include>
+      <uri>model://particle_sphere</uri>
+      <name>particle_sphere2</name>
+      <pose>1 1 0 0 0 0</pose>
+    </include>
+    
+    <include>
+      <uri>model://particle_sphere</uri>
+      <name>particle_sphere2</name>
+      <pose>1 1 1 0 0 0</pose>
     </include>
 
     <include>
@@ -86,7 +98,17 @@
 
     <!-- reference to your plugin -->
     <plugin name="dynamic_world_plugin" filename="libdynamic_world_plugin.so">
-      <update_frequency>1.0</update_frequency>
+      <number_of_particles>5</number_of_particles>
+      <x_axis_force>0.0</x_axis_force>
+      <y_axis_force>0.0</y_axis_force>
+      <z_axis_force>-2.0</z_axis_force>
+      
+      <x_origin>1.0</x_origin>
+      <y_origin>1.0</y_origin>
+      <z_origin>1.0</z_origin>
+      
+      <random_range>0.2</random_range>
+      
     </plugin>
 
   </world>

@@ -8,9 +8,16 @@
 
 #include <unistd.h>
 
-#include "gazebo/math/Vector3.hh"
-#include "gazebo/math/Quaternion.hh"
-#include "gazebo/math/Pose.hh"
+#include <boost/bind.hpp>
+#include <gazebo/gazebo.hh>
+#include <gazebo/physics/physics.hh>
+#include <gazebo/common/common.hh>
+#include <stdio.h>
+
+
+#include <ignition/math/Pose3.hh>
+#include <ignition/math/Vector3.hh>
+#include <ignition/math/Quaternion.hh>
 
 namespace gazebo
 {
@@ -65,7 +72,7 @@ public:
     this->WaitForseconds(seconds_to_wait);
 
     // Update Time Init
-    this->old_secs =this->world->GetSimTime().Float();
+    this->old_secs =this->world->SimTime().Float();
     // Listen to the update event. This event is broadcast every
     // simulation iteration.
     this->updateConnection = event::Events::ConnectWorldUpdateBegin(
@@ -89,7 +96,7 @@ public:
     {
       // We change Direction
       ROS_ERROR("Waiting until Clock is reseted and delta is not negative > Update delta=%f, new_secs=%f", delta,  new_secs);
-      new_secs = this->world->GetSimTime().Float();
+      new_secs = this->world->SimTime().Float();
       delta = new_secs - this->old_secs;
       ROS_ERROR("Updated until Clock is reseted > Update delta=%f, new_secs=%f", delta,  new_secs);
 
@@ -111,7 +118,7 @@ public:
     }else
     {
         // TODO: Check what is necessary now here
-        double new_secs =this->world->GetSimTime().Float();
+        double new_secs =this->world->SimTime().Float();
         double delta = new_secs - this->old_secs;
 
         double max_delta = 0.0;
@@ -154,9 +161,9 @@ public:
   void MoveParticles()
   {
       
-    std::string particle_base_name = "particle"
+    std::string particle_base_name = "particle";
 
-    for (auto model : this->world->GetModels())
+    for (auto model : this->world->Models())
     {
         std::string model_name = model->GetName();
 
@@ -165,7 +172,7 @@ public:
         float z_pos_rand = 0.0;
         float roll_rand = 0.0;
         float pitch_rand = 0.0;
-        float yaw_rand = 0.0
+        float yaw_rand = 0.0;
 
         // Id the model name contains the substring particle, we consider it a particle
         if (model_name.find(particle_base_name) == std::string::npos)
@@ -183,8 +190,15 @@ public:
             ***/
             
             ROS_DEBUG("POSE-RANDOM[X,Y,Z,Roll,Pitch,Yaw=[%f,%f,%f,%f,%f,%f], model=%s", x_pos_rand,y_pos_rand,z_pos_rand,roll_rand,pitch_rand,yaw_rand,model_name.c_str());
-            gazebo::math::Pose initPose(math::Vector3(x_pos_rand, y_pos_rand, z_pos_rand), math::Quaternion(roll_rand, pitch_rand, yaw_rand));
-            model->SetWorldPose(initPose);
+            //ignition::math::Pose3 initPose(ignition::math::Vector3<float>(x_pos_rand, y_pos_rand, z_pos_rand), ignition::math::Quaternion<float>(roll_rand, pitch_rand, yaw_rand));
+            
+            model->SetWorldPose(
+                                ignition::math::Pose3d(
+                                    ignition::math::Vector3d(x_pos_rand, y_pos_rand, z_pos_rand),
+                                    ignition::math::Quaterniond(roll_rand, pitch_rand, yaw_rand)
+                                                    )
+                                );
+            
             ROS_DEBUG("Moving model=%s....END",model_name.c_str());
 
         }
