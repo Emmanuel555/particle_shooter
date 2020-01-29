@@ -658,17 +658,17 @@
 
 
     <!-- reference to your plugin -->
-    <plugin name="particle_shooter_plugin" filename="libparticle_shooter_plugin.so">
-      <reset_frequency>30.0</reset_frequency>
+    <plugin name="particle_shooter_plugin" filename="/home/emmanuel/catkin_ws/build/particle_shooter/libparticle_shooter_plugin.so">
+      <reset_frequency>1500000.0</reset_frequency>
       <x_axis_force>-10000.0</x_axis_force>
-      <y_axis_force>0.0</y_axis_force>
-      <z_axis_force>0.0</z_axis_force>
+      <y_axis_force>5500.0</y_axis_force> <!-- only wan x direction, this would be reset to 0 -->
+      <z_axis_force>-3500.0</z_axis_force>
       
-      <x_origin>1.0</x_origin>
-      <y_origin>0.0</y_origin>
-      <z_origin>0.5</z_origin>
+      <x_origin>1.5</x_origin> <!-- original value is 1.0 for the start of the shooting -->
+      <y_origin>0.0</y_origin> <!-- original value is 0.0 for the start of the shooting -->
+      <z_origin>0.3</z_origin> <!-- original value is 0.5 for the start of the shooting -->
       
-      <random_range>0.5</random_range>
+      <random_range>0.0</random_range> <!-- original value is 0.5 for the shot/spray radius -->
       
     </plugin>
 

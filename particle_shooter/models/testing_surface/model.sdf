@@ -18,7 +18,7 @@
         <collision name='testing_surface_link_collision'>
           <geometry>
             <box>
-              <size>1.0 1.0 0.1</size>
+              <size>4.0 15.0 0.1</size>
             </box>
           </geometry>
           <max_contacts>1000</max_contacts>
@@ -38,7 +38,7 @@
         <visual name='testing_surface_link_visual'>
           <geometry>
             <box>
-              <size>1.0 1.0 0.1</size>
+              <size>4.0 15.0 0.1</size> <!-- original size is 1.0 -->
             </box>
           </geometry>
           <material>

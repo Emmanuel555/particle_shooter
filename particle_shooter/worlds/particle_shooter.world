@@ -124,10 +124,10 @@
 
 
     <!-- reference to your plugin -->
-    <plugin name="particle_shooter_plugin" filename="libparticle_shooter_plugin.so">
-      <reset_frequency>10.0</reset_frequency>
-      <x_axis_force>0.0</x_axis_force>
-      <y_axis_force>-5000.0</y_axis_force>
+    <plugin name="particle_shooter_plugin" filename="/home/emmanuel/catkin_ws/build/particle_shooter/libparticle_shooter_plugin.so">
+      <reset_frequency>1000.0</reset_frequency>
+      <x_axis_force>-10000.0</x_axis_force>
+      <y_axis_force>0.0</y_axis_force>
       <z_axis_force>0.0</z_axis_force>
       
       <x_origin>0.0</x_origin>

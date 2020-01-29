@@ -14,6 +14,8 @@
 #include <gazebo/common/common.hh>
 #include <stdio.h>
 
+#include "std_msgs/Float64.h"
+#include "std_msgs/Float32.h"
 
 #include <ignition/math/Pose3.hh>
 #include <ignition/math/Vector3.hh>
@@ -23,6 +25,7 @@ namespace gazebo
 {
 class ParticleShooterPlugin : public WorldPlugin
 {
+
 public:
   ParticleShooterPlugin() : WorldPlugin()
   {
@@ -37,8 +40,22 @@ public:
         << "Load the Gazebo system plugin 'libgazebo_ros_api_plugin.so' in the gazebo_ros package)");
       return;
     }
-    
-    
+
+
+//
+
+    int argc = 0;
+    char **argv =NULL;
+    ros::init(argc, argv, "water_rosnode",
+                ros::init_options::NoSigintHandler);
+
+    this->rosNode.reset(new ros::NodeHandle("water_rosnode")); //newly edit
+    this->rosPub = this->rosNode->advertise<std_msgs::Float64>("x_axis_force",10);
+
+    ros::Rate rate(10);
+
+//
+
     this->world = _world;
     GZ_ASSERT(this->world != NULL, "Got NULL world pointer!");
     this->sdf = _sdf;
@@ -49,9 +66,9 @@ public:
       this->reset_frequency = _sdf->Get<double>("reset_frequency");
 
     if (_sdf->HasElement("x_axis_force"))
-      this->x_axis_force = _sdf->Get<double>("x_axis_force");
+      this->x_axis_force = _sdf->Get<double>("x_axis_force"); //get x axis force from world sdf or publisher
     if (_sdf->HasElement("y_axis_force"))
-      this->y_axis_force = _sdf->Get<double>("y_axis_force");
+      this->y_axis_force = _sdf->Get<double>("y_axis_force"); //get y axis force from world sdf or publisher
     if (_sdf->HasElement("z_axis_force"))
       this->z_axis_force = _sdf->Get<double>("z_axis_force");
       
@@ -72,7 +89,7 @@ public:
     this->WaitForseconds(seconds_to_wait);
 
     // Update Time Init
-    this->old_secs =this->world->SimTime().Float();
+    this->old_secs =this->world->GetSimTime().Float();
     // Listen to the update event. This event is broadcast every
     // simulation iteration.
     this->updateConnection = event::Events::ConnectWorldUpdateBegin(
@@ -83,6 +100,12 @@ public:
 
     ROS_DEBUG("Particle Shooter Ready....");
   }
+
+
+private:
+        std::unique_ptr<ros::NodeHandle> rosNode;
+        ros::Publisher rosPub;
+
 
 
   void Reset()
@@ -98,7 +121,7 @@ public:
     {
       // We change Direction
       ROS_ERROR("Waiting until Clock is reseted and delta is not negative > Update delta=%f, new_secs=%f", delta,  new_secs);
-      new_secs = this->world->SimTime().Float();
+      new_secs = this->world->GetSimTime().Float();
       delta = new_secs - this->old_secs;
       ROS_ERROR("Updated until Clock is reseted > Update delta=%f, new_secs=%f", delta,  new_secs);
 
@@ -120,7 +143,7 @@ public:
     }else
     {
         // TODO: Check what is necessary now here
-        double new_secs =this->world->SimTime().Float();
+        double new_secs =this->world->GetSimTime().Float();
         double delta = new_secs - this->old_secs;
 
         double max_delta = 0.0;
@@ -165,7 +188,7 @@ public:
 
   void UpdateParticles(int model_to_update_index)
   {
-    for (auto model : this->world->Models())
+    for (auto model : this->world->GetModels())
     {
         std::string model_name = model->GetName();
         if (this->modelIDToName[model_to_update_index] == model_name)
@@ -186,7 +209,7 @@ public:
         this->modelIDToName_size = 0;
         
         int i = 0;
-        for (auto model : this->world->Models())
+        for (auto model : this->world->GetModels())
         {
             std::string model_name = model->GetName();
             if (model_name.find(this->particle_base_name) != std::string::npos)
