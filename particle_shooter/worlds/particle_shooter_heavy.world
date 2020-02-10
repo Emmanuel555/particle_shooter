@@ -659,9 +659,9 @@
 
     <!-- reference to your plugin -->
     <plugin name="particle_shooter_plugin" filename="/home/emmanuel/catkin_ws/build/particle_shooter/libparticle_shooter_plugin.so">
-      <reset_frequency>1500000.0</reset_frequency>
+      <reset_frequency>1500000.0</reset_frequency> -->
       <x_axis_force>-10000.0</x_axis_force>
-      <y_axis_force>5500.0</y_axis_force> <!-- only wan x direction, this would be reset to 0 -->
+      <y_axis_force>5500.0</y_axis_force> <!-- if i only wan x direction, this would be reset to 0 -->
       <z_axis_force>-3500.0</z_axis_force>
       
       <x_origin>1.5</x_origin> <!-- original value is 1.0 for the start of the shooting -->

@@ -8,6 +8,7 @@ add_definitions(-std=c++11)
 find_package(catkin REQUIRED COMPONENTS 
   roscpp 
   gazebo_ros 
+  std_msgs
 )
 
 # Depend on system install of Gazebo
@@ -25,5 +26,6 @@ target_link_libraries(particle_shooter_plugin ${catkin_LIBRARIES} ${GAZEBO_LIBRA
 catkin_package(
   DEPENDS 
     roscpp 
-    gazebo_ros 
+    gazebo_ros
+    std_msgs 
 )

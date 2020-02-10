@@ -14,8 +14,8 @@
 #include <gazebo/common/common.hh>
 #include <stdio.h>
 
-#include "std_msgs/Float64.h"
-#include "std_msgs/Float32.h"
+#include <std_msgs/Float64.h>
+#include <std_msgs/Float32.h>
 
 #include <ignition/math/Pose3.hh>
 #include <ignition/math/Vector3.hh>
@@ -44,18 +44,17 @@ public:
 
 //
 
-    int argc = 0;
-    char **argv =NULL;
-    ros::init(argc, argv, "water_rosnode",
-                ros::init_options::NoSigintHandler);
-
-    this->rosNode.reset(new ros::NodeHandle("water_rosnode")); //newly edit
-    this->rosPub = this->rosNode->advertise<std_msgs::Float64>("x_axis_force",10);
-
-    ros::Rate rate(10);
-
+//    int argc = 0;
+//    char **argv =NULL;
+//    ros::init(argc, argv, "water_rosnode",
+//               ros::init_options::NoSigintHandler);
+ 
+    this->rosNode.reset(new ros::NodeHandle("water_jet")); //newly edit
+    this->rosPub = this->rosNode->advertise<std_msgs::Float64>("y_force",10); //newly edit
+    this->rosSub = this->rosNode->subscribe("y_force", 10, &ParticleShooterPlugin::callback,this); //newly edit
+//    ros::spinOnce();
+	
 //
-
     this->world = _world;
     GZ_ASSERT(this->world != NULL, "Got NULL world pointer!");
     this->sdf = _sdf;
@@ -67,8 +66,9 @@ public:
 
     if (_sdf->HasElement("x_axis_force"))
       this->x_axis_force = _sdf->Get<double>("x_axis_force"); //get x axis force from world sdf or publisher
-    if (_sdf->HasElement("y_axis_force"))
-      this->y_axis_force = _sdf->Get<double>("y_axis_force"); //get y axis force from world sdf or publisher
+//    if (_sdf->HasElement("y_axis_force"))
+//      this->y_axis_force = _sdf->Get<double>("y_axis_force"); //get y axis force from world sdf or publisher
+//    this->y_axis_force = _sdf->Get<double>("y_axis_force");
     if (_sdf->HasElement("z_axis_force"))
       this->z_axis_force = _sdf->Get<double>("z_axis_force");
       
@@ -85,7 +85,7 @@ public:
     
     
     // We wait for all system to be ready an amount of seconds
-    float seconds_to_wait = 5.0;
+    float seconds_to_wait = 1.0;
     this->WaitForseconds(seconds_to_wait);
 
     // Update Time Init
@@ -94,6 +94,7 @@ public:
     // simulation iteration.
     this->updateConnection = event::Events::ConnectWorldUpdateBegin(
         std::bind(&ParticleShooterPlugin::OnUpdate, this));
+   
 
     GetParticleList();
     OutputParticleList();
@@ -103,9 +104,21 @@ public:
 
 
 private:
-        std::unique_ptr<ros::NodeHandle> rosNode;
-        ros::Publisher rosPub;
+  std::unique_ptr<ros::NodeHandle> rosNode;
+  ros::Publisher rosPub;
+  ros::Subscriber rosSub;
+  std_msgs::Float64 reading;
+  int check = 1;
+  
+  //publishing can only be done in void, not private, values can be initialised here as global variables
+  
+  
+  void callback(const std_msgs::Float64::ConstPtr& msg)
+  {
+     
+     reading.data = msg->data;
 
+  }
 
 
   void Reset()
@@ -116,6 +129,7 @@ private:
     this->old_secs = 0.0;
     double new_secs = 0.0;
     double delta = -1.0;
+
 
     while (delta < 0.0)
     {
@@ -188,11 +202,13 @@ private:
 
   void UpdateParticles(int model_to_update_index)
   {
+  	
     for (auto model : this->world->GetModels())
     {
         std::string model_name = model->GetName();
         if (this->modelIDToName[model_to_update_index] == model_name)
         {
+        	check =+ 1; // newly edit
             this->MoveParticle(model);
             this->SetForceParticle(model);
         }
@@ -204,6 +220,7 @@ private:
   
     void GetParticleList()
     {
+    	
         this->modelIDToName.clear();
         // Initialize color map.
         this->modelIDToName_size = 0;
@@ -275,21 +292,50 @@ private:
     
 
   }
-  
-  
-  void SetForceParticle(boost::shared_ptr<gazebo::physics::Model> model)
+
+  void counter()
   {
-      
+  	std_msgs::Float64 counter;
+    counter.data = 4000.0;
+    rosPub.publish(counter);
+    this->y_axis_force = reading.data;
+    if (check != 0)
+    	 check +=1;	
+  }
+  
+  void SetForceParticle(boost::shared_ptr<gazebo::physics::Model> model) //THIS WHOLE SHIT ONLY RUNS ONCE, IT DOESNT LOOP!!!!
+  {
+//  new
+//    std_msgs::Float64 counter;
+//    counter.data = 2000.0;
+    
+//    while (check == 1) //while user input is not equal to zero
+//    {     
+//   if (counter.data == 6000.0 || counter.data == 1000.0) 
+//     	 check +=1;
+   //   if (check % 2 != 0)
+   //   	 counter.data += 1000.0;
+   //   else
+   //       counter.data -=1000.0;
+    
+//    rosPub.publish(counter);
+//    this->y_axis_force = reading.data;
+    //ros::Rate rate(50); //newly edit
+    counter();
+//  new
+
     std::string model_name = model->GetName();
 
     // If the model name contains the substring particle, we consider it a particle
     if (model_name.find(this->particle_base_name) != std::string::npos)
     {
-        ROS_WARN("FORCE APPLIED[X,Y,Z]=[%f,%f,%f]", this->x_axis_force, this->y_axis_force, this->z_axis_force);
+    //	if (check != 0)
+    //	 check +=1;	
+        ROS_WARN("FORCE APPLIED[X,Y,Z]=[%f,%f,%f,%d]", this->x_axis_force, this->y_axis_force, this->z_axis_force, check);
         model->GetLink("link")->SetForce(ignition::math::Vector3d(this->x_axis_force, this->y_axis_force, this->z_axis_force));
     }
 
-    
+//    }
 
   }
 
@@ -335,6 +381,7 @@ private:
   int model_to_update_index_now = 0;
   
   std::string particle_base_name = "particle";
+
 
 };
 GZ_REGISTER_WORLD_PLUGIN(ParticleShooterPlugin)
